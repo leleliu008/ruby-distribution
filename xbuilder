@@ -307,14 +307,11 @@ inspect_install_arguments() {
     unset DUMP_HTTP
 
     unset VERBOSE_GMAKE
-    unset VERBOSE_CMAKE
 
     unset DEBUG_CC
     unset DEBUG_LD
 
     unset DEBUG_GMAKE
-    unset DEBUG_CMAKE
-    unset DEBUG_PKG_CONFIG
 
     while [ -n "$1" ]
     do
@@ -327,7 +324,6 @@ inspect_install_arguments() {
                 DUMP_HTTP=1
 
                 VERBOSE_GMAKE=1
-                VERBOSE_CMAKE=1
                 ;;
             -vv)LOG_LEVEL=3
 
@@ -335,14 +331,11 @@ inspect_install_arguments() {
                 DUMP_HTTP=1
 
                 VERBOSE_GMAKE=1
-                VERBOSE_CMAKE=1
 
                 DEBUG_CC=1
                 DEBUG_LD=1
 
                 DEBUG_GMAKE=1
-                DEBUG_CMAKE=1
-                DEBUG_PKG_CONFIG=1
                 ;;
             -v-env)
                 DUMP_ENV=1
@@ -353,9 +346,6 @@ inspect_install_arguments() {
             -v-gmake)
                 VERBOSE_GMAKE=1
                 ;;
-            -v-cmake)
-                VERBOSE_CMAKE=1
-                ;;
             -v-cc)
                 DEBUG_CC=1
                 ;;
@@ -364,12 +354,6 @@ inspect_install_arguments() {
                 ;;
             -x-gmake)
                 DEBUG_GMAKE=1
-                ;;
-            -x-cmake)
-                DEBUG_CMAKE=1
-                ;;
-            -x-pkg-config)
-                DEBUG_PKG_CONFIG=1
                 ;;
             --profile=*)
                 PROFILE="${1#*=}"
@@ -546,6 +530,13 @@ inspect_install_arguments() {
 
     #########################################################################################
 
+    PP_ARGS="$PP_ARGS -I$AUX_INCLUDE_DIR"
+    LD_ARGS="$LD_ARGS -L$AUX_LIBRARY_DIR"
+
+    PATH="$AUX_INSTALL_DIR/bin:$PATH"
+
+    #########################################################################################
+
       CFLAGS="$CC_ARGS   $CFLAGS"
     CXXFLAGS="$CC_ARGS $CXXFLAGS"
     CPPFLAGS="$PP_ARGS $CPPFLAGS"
@@ -560,13 +551,10 @@ inspect_install_arguments() {
 
     #########################################################################################
 
-    export PKG_CONFIG_LIBDIR="$PACKAGE_INSTALL_DIR/lib/pkgconfig"
-    export PKG_CONFIG_PATH="$PACKAGE_INSTALL_DIR/lib/pkgconfig"
-    export ACLOCAL_PATH="$PACKAGE_INSTALL_DIR/share/aclocal"
-
-    #########################################################################################
-
-    # DO NOT use these environment variables
+    unset PKG_CONFIG_LIBDIR
+    unset PKG_CONFIG_PATH
+    unset PKG_CONFIG
+    unset ACLOCAL_PATH
 
     unset LIBS
 
@@ -584,111 +572,11 @@ inspect_install_arguments() {
     unset M4
     unset MAKE
 
-    # https://cmake.org/cmake/help/latest/envvar/MACOSX_DEPLOYMENT_TARGET.html
-    unset   MACOSX_DEPLOYMENT_TARGET
-    unset IPHONEOS_DEPLOYMENT_TARGET
-    unset  WATCHOS_DEPLOYMENT_TARGET
-
     # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
     unset TARGET_ARCH
 
     # https://keith.github.io/xcode-man-pages/xcrun.1.html
-    # https://cmake.org/cmake/help/latest/variable/CMAKE_OSX_SYSROOT.html
     unset SDKROOT
-
-    # https://cmake.org/cmake/help/latest/manual/cmake-env-variables.7.html#manual:cmake-env-variables(7)
-
-    unset CMAKE_APPBUNDLE_PATH
-    unset CMAKE_FRAMEWORK_PATH
-    unset CMAKE_PROGRAM_PATH
-    unset CMAKE_INCLUDE_PATH
-    unset CMAKE_LIBRARY_PATH
-    unset CMAKE_PREFIX_PATH
-    unset CMAKE_MAXIMUM_RECURSION_DEPTH
-    unset CMAKE_APPLE_SILICON_PROCESSOR
-    unset CMAKE_BUILD_PARALLEL_LEVEL
-    unset CMAKE_BUILD_TYPE
-    unset CMAKE_CONFIGURATION_TYPES
-    unset CMAKE_CONFIG_TYPE
-    unset CMAKE_EXPORT_COMPILE_COMMANDS
-    unset CMAKE_GENERATOR
-    unset CMAKE_GENERATOR_INSTANCE
-    unset CMAKE_GENERATOR_PLATFORM
-    unset CMAKE_GENERATOR_TOOLSET
-    unset CMAKE_INSTALL_MODE
-    unset CMAKE_C_COMPILER_LAUNCHER
-    unset CMAKE_C_LINKER_LAUNCHER
-    unset CMAKE_CXX_COMPILER_LAUNCHER
-    unset CMAKE_CXX_LINKER_LAUNCHER
-    unset CMAKE_MSVCIDE_RUN_PATH
-    unset CMAKE_NO_VERBOSE
-    unset CMAKE_OSX_ARCHITECTURES
-    unset CMAKE_TOOLCHAIN_FILE
-    unset DESTDIR
-    unset VERBOSE
-    unset CTEST_INTERACTIVE_DEBUG_MODE
-    unset CTEST_OUTPUT_ON_FAILURE
-    unset CTEST_PARALLEL_LEVEL
-    unset CTEST_PROGRESS_OUTPUT
-    unset CTEST_USE_LAUNCHERS_DEFAULT
-    unset DASHBOARD_TEST_FROM_CTEST
-
-    # https://cmake.org/cmake/help/latest/envvar/CMAKE_GENERATOR.html
-    export CMAKE_GENERATOR='Unix Makefiles'
-
-    # https://cmake.org/cmake/help/latest/envvar/CMAKE_BUILD_PARALLEL_LEVEL.html
-    export CMAKE_BUILD_PARALLEL_LEVEL="$BUILD_NJOBS"
-
-    # https://cmake.org/cmake/help/latest/envvar/CMAKE_EXPORT_COMPILE_COMMANDS.html
-    if [ "$EXPORT_COMPILE_COMMANDS_JSON" = 1 ] ; then
-        export CMAKE_EXPORT_COMPILE_COMMANDS=ON
-    else
-        export CMAKE_EXPORT_COMPILE_COMMANDS=OFF
-    fi
-
-    case $PROFILE in
-        debug)   CMAKE_BUILD_TYPE=Debug   ;;
-        release) CMAKE_BUILD_TYPE=Release ;;
-    esac
-
-    if [ "$VERBOSE_CMAKE" = 1 ] ; then
-        CMAKE_VERBOSE_MAKEFILE=ON
-        CMAKE_COLOR_MAKEFILE=ON
-    else
-        CMAKE_VERBOSE_MAKEFILE=OFF
-        CMAKE_COLOR_MAKEFILE=OFF
-    fi
-
-    # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
-    if [ "$DEBUG_CMAKE" = 1 ] ; then
-        CMAKE_FIND_DEBUG_MODE=ON
-    else
-        CMAKE_FIND_DEBUG_MODE=OFF
-    fi
-}
-
-cmakew() {
-    if [ -z "$CMAKE" ] ; then
-        CMAKE="$(command -v cmake)" || abort 1 "command not found: cmake"
-    fi
-
-    STR="$("$CMAKE" --help | sed -n '/-S /p')"
-
-    # https://stackoverflow.com/questions/11143062/getting-cmake-to-build-out-of-source-without-wrapping-scripts
-    if [ -z "$STR" ] ; then
-        CMAKE_ARGS='-H. -Bbuild.d'
-    else
-        CMAKE_ARGS='-S . -B build.d'
-    fi
-
-    run install -d build.d
-
-    run "$CMAKE" --version
-    run "$CMAKE" -DCMAKE_INSTALL_PREFIX="$PACKAGE_INSTALL_DIR" -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DCMAKE_VERBOSE_MAKEFILE=$CMAKE_VERBOSE_MAKEFILE -DCMAKE_COLOR_MAKEFILE=$CMAKE_COLOR_MAKEFILE -DCMAKE_FIND_DEBUG_MODE=$CMAKE_FIND_DEBUG_MODE -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_SHARED_LIBS=ON "$*" "$CMAKE_ARGS"
-    run "$CMAKE" --build   build.d
-    #run "$CMAKE" --install build.d
-    # https://stackoverflow.com/questions/34040522/is-there-a-cmake-install-switch/34040747
-    run "$GMAKE" -C build.d install
 }
 
 configure() {
@@ -780,24 +668,6 @@ install_the_given_package() {
 
     #########################################################################################
 
-    if [ -n "$PACKAGE_DEP_PKG" ] ; then
-        STATIC_LIBRARY_DIR="$PACKAGE_WORKING_DIR/lib"
-
-        run install -d ../lib/
-
-        find "$AUX_LIBRARY_DIR" -maxdepth 1 -mindepth 1 -name 'lib*.a' -exec ln -s -v '{}' ../lib/ \;
-
-        CPPFLAGS="-I$AUX_INCLUDE_DIR $CPPFLAGS"
-
-        LDFLAGS="-L$STATIC_LIBRARY_DIR $LDFLAGS"
-
-        PATH="$AUX_INSTALL_DIR/bin:$PATH"
-
-        PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$AUX_LIBRARY_DIR/pkgconfig"
-    fi
-
-    #########################################################################################
-
     if [ -n  "$PACKAGE_DOPATCH" ] ; then
         eval "$PACKAGE_DOPATCH"
     fi
@@ -844,8 +714,7 @@ EOF
 package_info_libz() {
     PACKAGE_SRC_URL='https://zlib.net/fossils/zlib-1.3.1.tar.gz'
     PACKAGE_SRC_SHA='9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23'
-    PACKAGE_DOPATCH='sed -i.bak "s|/share/pkgconfig|/lib/pkgconfig|" CMakeLists.txt'
-    PACKAGE_INSTALL='cmakew'
+    PACKAGE_INSTALL='configure --static'
 }
 
 package_info_libffi() {
@@ -872,6 +741,7 @@ package_info_libxcrypt() {
     PACKAGE_SRC_URL='https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz'
     PACKAGE_SRC_SHA='e5e1f4caee0a01de2aee26e3138807d6d3ca2b8e67287966d1fefd65e1fd8943'
     PACKAGE_DEP_PKG='perl'
+    PACKAGE_DOPATCH='export LDFLAGS="-static $LDFLAGS"'
     PACKAGE_INSTALL='configure --disable-dependency-tracking --enable-obsolete-api=glibc --disable-xcrypt-compat-files --disable-failure-tokens --disable-valgrind'
 }
 
@@ -886,7 +756,7 @@ package_info_ruby() {
     PACKAGE_SRC_URL='https://cache.ruby-lang.org/pub/ruby/3.3/ruby-3.3.5.tar.gz'
     PACKAGE_SRC_SHA='3781a3504222c2f26cb4b9eb9c1a12dbf4944d366ce24a9ff8cf99ecbce75196'
     PACKAGE_DEP_PKG='libz libyaml libffi libopenssl'
-    PACKAGE_INSTALL='configure --disable-dependency-tracking --enable-load-relative --with-static-linked-ext --without-gmp'
+    PACKAGE_INSTALL='configure --disable-dependency-tracking --disable-rpath --enable-load-relative --with-static-linked-ext --without-gmp --with-opt-dir="$AUX_INSTALL_DIR"'
 
     if [ "$NATIVE_PLATFORM_KIND" = linux ] ; then
         PACKAGE_DEP_PKG="$PACKAGE_DEP_PKG libxcrypt"
@@ -911,7 +781,7 @@ ${COLOR_GREEN}xbuilder ls-available [-v]${COLOR_OFF}
 ${COLOR_GREEN}xbuilder install <PACKAGE-NAME>... [OPTIONS]${COLOR_OFF}
     install the specified packages.
 
-    Influential environment variables: TAR, CMAKE, GMAKE, CC, CXX, AS, LD, AR, RANLIB, CFLAGS, CXXFLAGS, CPPFLAGS, LDFLAGS
+    Influential environment variables: TAR, GMAKE, CC, CXX, AS, LD, AR, RANLIB, CFLAGS, CXXFLAGS, CPPFLAGS, LDFLAGS
 
     OPTIONS:
         ${COLOR_BLUE}--prefix=<DIR>${COLOR_OFF}
@@ -957,9 +827,6 @@ ${COLOR_GREEN}xbuilder install <PACKAGE-NAME>... [OPTIONS]${COLOR_OFF}
         ${COLOR_BLUE}-v-gmake${COLOR_OFF}
             pass V=1 argument to gmake command.
 
-        ${COLOR_BLUE}-v-cmake${COLOR_OFF}
-            pass -DCMAKE_VERBOSE_MAKEFILE=ON argument to cmake command.
-
         ${COLOR_BLUE}-v-cc${COLOR_OFF}
             pass -v argument to the C/C++ compiler.
 
@@ -968,12 +835,6 @@ ${COLOR_GREEN}xbuilder install <PACKAGE-NAME>... [OPTIONS]${COLOR_OFF}
 
         ${COLOR_BLUE}-x-gmake${COLOR_OFF}
             pass --debug argument to gmake command.
-
-        ${COLOR_BLUE}-x-cmake${COLOR_OFF}
-            pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command.
-
-        ${COLOR_BLUE}-x-pkg-config${COLOR_OFF}
-            export PKG_CONFIG_DEBUG_SPEW=1
 "
 }
 
