@@ -476,11 +476,11 @@ inspect_install_arguments() {
         [ -z "$RANLIB"  ] &&  RANLIB="$(xcrun --sdk macosx --find ranlib)"
         [ -z "$SYSROOT" ] && SYSROOT="$(xcrun --sdk macosx --show-sdk-path)"
 
-        NATIVE_PLATFORM_VERS="$(sw_vers -productVersion)"
+        [ -z "$MACOSX_DEPLOYMENT_TARGET" ] && MACOSX_DEPLOYMENT_TARGET="$(sw_vers -productVersion)"
 
-        CC_ARGS="-isysroot $SYSROOT -mmacosx-version-min=$NATIVE_PLATFORM_VERS -arch $NATIVE_PLATFORM_ARCH -Qunused-arguments"
+        CC_ARGS="-isysroot $SYSROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -arch $NATIVE_PLATFORM_ARCH -Qunused-arguments"
         PP_ARGS="-isysroot $SYSROOT -Qunused-arguments"
-        LD_ARGS="-isysroot $SYSROOT -mmacosx-version-min=$NATIVE_PLATFORM_VERS -arch $NATIVE_PLATFORM_ARCH"
+        LD_ARGS="-isysroot $SYSROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -arch $NATIVE_PLATFORM_ARCH"
     else
         [ -z "$CC" ] && {
              CC="$(command -v cc  || command -v clang   || command -v gcc)" || abort 1 "C Compiler not found."
@@ -871,6 +871,7 @@ package_info_libopenssl() {
 package_info_libxcrypt() {
     PACKAGE_SRC_URL='https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz'
     PACKAGE_SRC_SHA='e5e1f4caee0a01de2aee26e3138807d6d3ca2b8e67287966d1fefd65e1fd8943'
+    PACKAGE_DEP_PKG='perl'
     PACKAGE_INSTALL='configure --disable-dependency-tracking --enable-obsolete-api=glibc --disable-xcrypt-compat-files --disable-failure-tokens --disable-valgrind'
 }
 
