@@ -1,0 +1,298 @@
+name: publish ruby-distribution
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  check:
+    runs-on: ubuntu-latest
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - id:  check-if-build
+        run: |
+          cat > QUERY <<EOF
+          {
+            repository(owner: "leleliu008", name: "ruby-distribution") {
+                latestRelease {
+                  name
+                }
+            }
+          }
+          EOF
+
+          LATEST_RELEASE_VERSION="$(gh api graphql -f "query=$(cat QUERY)" --jq .data.repository.latestRelease.name)"
+
+          RELEASE_VERSION="$(date +%Y.%m.%d)"
+
+          if [ "$LATEST_RELEASE_VERSION" = "$RELEASE_VERSION" ] ; then
+              RELEASE=no
+          else
+              RELEASE=yes
+          fi
+
+          printf 'RELEASE=%s\n' "$RELEASE" >> "$GITHUB_OUTPUT"
+          printf 'RELEASE_VERSION=%s\n' "$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
+
+    outputs:
+      if-new-release:  ${{ steps.check-if-build.outputs.RELEASE }}
+      release-version: ${{ steps.check-if-build.outputs.RELEASE_VERSION }}
+
+  freebsd:
+    needs: check
+    if: needs.check.outputs.if-new-release == 'yes'
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target-version: ['14.1', '14.0', '13.3', '13.2']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cross-platform-actions/action@v0.25.0
+        with:
+          operating_system: freebsd
+          version: ${{ matrix.target-version }}
+          shell: bash
+          run: ./pack.sh ${{ needs.check.outputs.release-version }} freebsd-${{ matrix.target-version }}-amd64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruby-distribution-${{ needs.check.outputs.release-version }}-freebsd-${{ matrix.target-version }}-amd64.tar.xz
+          path: ruby-distribution-${{ needs.check.outputs.release-version }}-freebsd-${{ matrix.target-version }}-amd64.tar.xz
+
+
+  openbsd:
+    needs: check
+    if: needs.check.outputs.if-new-release == 'yes'
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target-version: ['7.5', '7.4', '7.3', '7.2']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cross-platform-actions/action@v0.25.0
+        with:
+          operating_system: openbsd
+          version: ${{ matrix.target-version }}
+          shell: bash
+          run: ./pack.sh ${{ needs.check.outputs.release-version }} openbsd-${{ matrix.target-version }}-amd64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruby-distribution-${{ needs.check.outputs.release-version }}-openbsd-${{ matrix.target-version }}-amd64.tar.xz
+          path: ruby-distribution-${{ needs.check.outputs.release-version }}-openbsd-${{ matrix.target-version }}-amd64.tar.xz
+
+  netbsd:
+    needs: check
+    if: needs.check.outputs.if-new-release == 'yes'
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target-version: ['10.0', '9.4', '9.3', '9.2']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: curl -LO https://curl.se/ca/cacert.pem
+
+      - uses: cross-platform-actions/action@v0.25.0
+        with:
+          operating_system: netbsd
+          version: ${{ matrix.target-version }}
+          shell: bash
+          run: ./pack.sh ${{ needs.check.outputs.release-version }} netbsd-${{ matrix.target-version }}-amd64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruby-distribution-${{ needs.check.outputs.release-version }}-netbsd-${{ matrix.target-version }}-amd64.tar.xz
+          path: ruby-distribution-${{ needs.check.outputs.release-version }}-netbsd-${{ matrix.target-version }}-amd64.tar.xz
+
+
+  macos-arm64:
+    needs: check
+    if: needs.check.outputs.if-new-release == 'yes'
+
+    runs-on: macos-14
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target-version: ['10.15', '11.0', '12.0', '13.0', '14.0']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: ./pack.sh ${{ needs.check.outputs.release-version }} macos-${{ matrix.target-version }}-arm64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruby-distribution-${{ needs.check.outputs.release-version }}-macos-${{ matrix.target-version }}-arm64.tar.xz
+          path: ruby-distribution-${{ needs.check.outputs.release-version }}-macos-${{ matrix.target-version }}-arm64.tar.xz
+
+
+  macos-x86_64:
+    needs: check
+    if: needs.check.outputs.if-new-release == 'yes'
+
+    runs-on: macos-13
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target-version: ['10.15', '11.0', '12.0', '13.0', '14.0']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: ./pack.sh ${{ needs.check.outputs.release-version }} macos-${{ matrix.target-version }}-x86_64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruby-distribution-${{ needs.check.outputs.release-version }}-macos-${{ matrix.target-version }}-x86_64.tar.xz
+          path: ruby-distribution-${{ needs.check.outputs.release-version }}-macos-${{ matrix.target-version }}-x86_64.tar.xz
+
+
+  linux-glibc:
+    needs: check
+    if: needs.check.outputs.if-new-release == 'yes'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target-arch: [x86_64, aarch64, ppc64le, riscv64, s390x]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: |
+          cat > run.sh <<EOF
+          ./pack.sh ${{ needs.check.outputs.release-version }} linux-glibc-${{ matrix.target-arch }}
+          EOF
+
+          chmod +x run.sh
+
+      # https://github.com/multiarch/qemu-user-static
+      - if: matrix.target-arch != 'x86_64'
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - if: matrix.target-arch == 'x86_64'
+        run: docker run -v $PWD:/root -w /root --name ubuntu         ubuntu:18.04 sh run.sh
+
+      - if: matrix.target-arch == 'aarch64'
+        run: docker run -v $PWD:/root -w /root --name ubuntu arm64v8/ubuntu:18.04 sh run.sh
+
+      - if: matrix.target-arch == 'ppc64le'
+        run: docker run -v $PWD:/root -w /root --name ubuntu ppc64le/ubuntu:18.04 sh run.sh
+
+      - if: matrix.target-arch == 'riscv64'
+        run: docker run -v $PWD:/root -w /root --name ubuntu riscv64/ubuntu sh run.sh
+
+      - if: matrix.target-arch == 's390x'
+        run: docker run -v $PWD:/root -w /root --name ubuntu   s390x/ubuntu:18.04 sh run.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruby-distribution-${{ needs.check.outputs.release-version }}-linux-glibc-${{ matrix.target-arch }}.tar.xz
+          path: ruby-distribution-${{ needs.check.outputs.release-version }}-linux-glibc-${{ matrix.target-arch }}.tar.xz
+
+
+  linux-musl:
+    needs: check
+    if: needs.check.outputs.if-new-release == 'yes'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target-arch: [x86_64, aarch64, ppc64le, riscv64, s390x]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: |
+          cat > run.sh <<EOF
+          ./pack.sh ${{ needs.check.outputs.release-version }} linux-musl-${{ matrix.target-arch }}
+          EOF
+
+          chmod +x run.sh
+
+      # https://github.com/multiarch/qemu-user-static
+      - if: matrix.target-arch != 'x86_64'
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - if: matrix.target-arch == 'x86_64'
+        run: docker run -v $PWD:/root -w /root --name alpine         alpine sh run.sh
+
+      - if: matrix.target-arch == 'aarch64'
+        run: docker run -v $PWD:/root -w /root --name alpine arm64v8/alpine sh run.sh
+
+      - if: matrix.target-arch == 'ppc64le'
+        run: docker run -v $PWD:/root -w /root --name alpine ppc64le/alpine sh run.sh
+
+      - if: matrix.target-arch == 'riscv64'
+        run: docker run -v $PWD:/root -w /root --name alpine riscv64/alpine sh run.sh
+
+      - if: matrix.target-arch == 's390x'
+        run: docker run -v $PWD:/root -w /root --name alpine   s390x/alpine sh run.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruby-distribution-${{ needs.check.outputs.release-version }}-linux-musl-${{ matrix.target-arch }}.tar.xz
+          path: ruby-distribution-${{ needs.check.outputs.release-version }}-linux-musl-${{ matrix.target-arch }}.tar.xz
+
+
+  publish:
+    needs: [check, freebsd, openbsd, netbsd, macos-arm64, macos-x86_64, linux-glibc, linux-musl]
+    if: needs.check.outputs.if-new-release == 'yes'
+
+    runs-on: ubuntu-latest
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*'
+          path: .
+          merge-multiple: true
+
+      - run: ls -a
+
+      - run: |
+          cat > notes.md <<EOF
+          ## config
+
+          \`\`\`yaml
+          $(./xbuilder ls-available -v)
+          \`\`\`
+
+          ## sha256sum
+
+          \`\`\`
+          $(sha256sum *.tar.xz)
+          \`\`\`
+          EOF
+
+      - run: gh release create ${{ needs.check.outputs.release-version }} *.tar.xz --title ${{ needs.check.outputs.release-version }} --notes-file notes.md
