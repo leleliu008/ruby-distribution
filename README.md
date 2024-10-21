@@ -1,2 +1,2 @@
 # ruby-distribution
-A self-contained Ruby distribution
+A self-contained and relocatable Ruby distribution
