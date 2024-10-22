@@ -209,7 +209,7 @@ jobs:
         run: docker run -v $PWD:/root -w /root --name ubuntu ppc64le/ubuntu:18.04 sh run.sh
 
       - if: matrix.target-arch == 'riscv64'
-        run: docker run -v $PWD:/root -w /root --name ubuntu riscv64/ubuntu sh run.sh
+        run: docker run -v $PWD:/root -w /root --name ubuntu riscv64/ubuntu:21.04 sh run.sh
 
       - if: matrix.target-arch == 's390x'
         run: docker run -v $PWD:/root -w /root --name ubuntu   s390x/ubuntu:18.04 sh run.sh
