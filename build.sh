@@ -752,8 +752,8 @@ package_info_perl() {
 }
 
 package_info_ruby() {
-    PACKAGE_SRC_URL='https://cache.ruby-lang.org/pub/ruby/3.3/ruby-3.3.5.tar.gz'
-    PACKAGE_SRC_SHA='3781a3504222c2f26cb4b9eb9c1a12dbf4944d366ce24a9ff8cf99ecbce75196'
+    PACKAGE_SRC_URL='https://cache.ruby-lang.org/pub/ruby/3.3/ruby-3.3.6.tar.gz'
+    PACKAGE_SRC_SHA='8dc48fffaf270f86f1019053f28e51e4da4cce32a36760a0603a9aee67d7fd8d'
     PACKAGE_DEP_PKG='libz libyaml libffi libopenssl'
     PACKAGE_INSTALL='configure --disable-dependency-tracking --disable-rpath --enable-load-relative --with-static-linked-ext --without-gmp --with-opt-dir="$AUX_INSTALL_DIR"'
 
