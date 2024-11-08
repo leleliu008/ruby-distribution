@@ -92,6 +92,8 @@ __setup_${2%%-*}
 
 PREFIX="ruby-distribution-$1-$2"
 
-run ./xbuilder install --prefix="$PREFIX"
+run ./build.sh install --prefix="$PREFIX"
+
+run cp build.sh "$PREFIX/"
 
 run bsdtar cvaPf "$PREFIX.tar.xz" "$PREFIX"

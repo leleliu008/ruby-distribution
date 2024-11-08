@@ -291,7 +291,7 @@ jobs:
           ## config
 
           \`\`\`yaml
-          $(./xbuilder ls-available -v)
+          $(./build.sh config)
           \`\`\`
 
           ## sha256sum
