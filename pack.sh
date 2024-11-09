@@ -15,8 +15,12 @@ run() {
     eval "$@"
 }
 
+__setup_dragonflybsd() {
+__setup_freebsd
+}
+
 __setup_freebsd() {
-    run $sudo pkg install -y coreutils gmake gcc
+    run $sudo pkg install -y curl libnghttp2 coreutils gmake gcc
 
     run $sudo ln -sf /usr/local/bin/gln        /usr/bin/ln
     run $sudo ln -sf /usr/local/bin/gmake      /usr/bin/make
@@ -90,7 +94,7 @@ __setup_${2%%-*}
 
 [ -f cacert.pem ] && run export SSL_CERT_FILE="$PWD/cacert.pem"
 
-PREFIX="ruby-distribution-$1-$2"
+PREFIX="ruby-$1-$2"
 
 run ./build.sh install --prefix="$PREFIX"
 
