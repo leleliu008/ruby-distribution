@@ -772,7 +772,7 @@ package_info_ruby() {
     PACKAGE_SRC_URL='https://cache.ruby-lang.org/pub/ruby/3.3/ruby-3.3.6.tar.gz'
     PACKAGE_SRC_SHA='8dc48fffaf270f86f1019053f28e51e4da4cce32a36760a0603a9aee67d7fd8d'
     PACKAGE_DEP_PKG='libz libyaml libffi libopenssl'
-    PACKAGE_INSTALL='configure --disable-dependency-tracking --disable-rpath --enable-load-relative --with-static-linked-ext --without-gmp --with-opt-dir="$AUX_INSTALL_DIR"'
+    PACKAGE_INSTALL='configure --disable-dependency-tracking --disable-install-doc --disable-install-rdoc --disable-rpath --enable-load-relative --with-static-linked-ext --without-gmp --with-opt-dir="$AUX_INSTALL_DIR"'
 
     if [ "$NATIVE_PLATFORM_KIND" = linux ] ; then
         PACKAGE_DEP_PKG="$PACKAGE_DEP_PKG libxcrypt"
