@@ -533,8 +533,6 @@ inspect_install_arguments() {
     PP_ARGS="$PP_ARGS -I$AUX_INCLUDE_DIR"
     LD_ARGS="$LD_ARGS -L$AUX_LIBRARY_DIR"
 
-    PATH="$AUX_INSTALL_DIR/bin:$PATH"
-
     #########################################################################################
 
       CFLAGS="$CC_ARGS   $CFLAGS"
@@ -551,8 +549,13 @@ inspect_install_arguments() {
 
     #########################################################################################
 
+    export PATH="$AUX_INSTALL_DIR/bin:$PATH"
+
+    export PKG_CONFIG_PATH="$AUX_INSTALL_DIR/lib/pkgconfig"
+
+    #########################################################################################
+
     unset PKG_CONFIG_LIBDIR
-    unset PKG_CONFIG_PATH
     unset PKG_CONFIG
     unset ACLOCAL_PATH
 
