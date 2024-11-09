@@ -419,7 +419,7 @@ inspect_install_arguments() {
     #########################################################################################
 
     if [ -z "$BUILD_NJOBS" ] ; then
-        if [ "$NATIVE_PLATFORM_KIND" = 'darwin' ] ; then
+        if [ "$NATIVE_PLATFORM_KIND" = darwin ] ; then
             NATIVE_PLATFORM_NCPU="$(sysctl -n machdep.cpu.thread_count)"
         else
             NATIVE_PLATFORM_NCPU="$(nproc)"
@@ -451,7 +451,7 @@ inspect_install_arguments() {
     unset PP_ARGS
     unset LD_ARGS
 
-    if [ "$NATIVE_PLATFORM_KIND" = 'darwin' ] ; then
+    if [ "$NATIVE_PLATFORM_KIND" = darwin ] ; then
         [ -z "$CC"      ] &&      CC="$(xcrun --sdk macosx --find clang)"
         [ -z "$CXX"     ] &&     CXX="$(xcrun --sdk macosx --find clang++)"
         [ -z "$AS"      ] &&      AS="$(xcrun --sdk macosx --find as)"
@@ -698,15 +698,32 @@ install_the_given_package() {
 
     #########################################################################################
 
+    run cd "$PACKAGE_INSTALL_DIR"
+
+    #########################################################################################
+
     PACKAGE_INSTALL_UTS="$(date +%s)"
 
-    cat > "$PACKAGE_INSTALL_DIR/$1.yml" <<EOF
+    cat > "$1.yml" <<EOF
 src-url: $PACKAGE_SRC_URL
 src-uri: $PACKAGE_SRC_URI
 src-sha: $PACKAGE_SRC_SHA
 dep-pkg: $PACKAGE_DEP_PKG
 install: $PACKAGE_INSTALL
 builtat: $PACKAGE_INSTALL_UTS
+EOF
+
+    cat > toolchain.txt <<EOF
+     CC='$CC'
+    CXX='$CXX'
+     AS='$AS'
+     LD='$LD'
+     AR='$AR'
+ RANLIB='$RANLIB'
+SYSROOT='$SYSROOT'
+PROFILE='$PROFILE'
+ CFLAGS='$CFLAGS'
+LDFLAGS='$LDFLAGS'
 EOF
 }
 
@@ -760,7 +777,31 @@ package_info_ruby() {
     if [ "$NATIVE_PLATFORM_KIND" = linux ] ; then
         PACKAGE_DEP_PKG="$PACKAGE_DEP_PKG libxcrypt"
     fi
+
+    PACKAGE_DOPATCH='
+if [ "$NATIVE_PLATFORM_KIND" = darwin ] ; then
+cat > cc-wrapper <<EOF
+#!/bin/sh
+
+if [ "\$1" = -dynamic ] && [ "\$2" = -bundle ] ; then
+    exec "$CC" "\$@" "$PACKAGE_WORKING_DIR/src/libruby.3.3-static.a" -framework CoreFoundation
+else
+    exec "$CC" "\$@"
+fi
+EOF
+chmod +x cc-wrapper
+export CC="$PWD/cc-wrapper"
+fi
+'
+    PACKAGE_DOTWEAK='gsed -i "/^prefix=/c prefix=\${pcfiledir}/../.." lib/pkgconfig/*.pc'
 }
+
+package_info_gsed() {
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/sed/sed-4.9.tar.xz'
+    PACKAGE_SRC_SHA='6e226b732e1cd739464ad6862bd1a1aba42d7982922da7a53519631d24975181'
+    PACKAGE_INSTALL='configure --program-prefix=g --with-included-regex --without-selinux --disable-acl --disable-assert'
+}
+
 
 help() {
     printf '%b\n' "\
@@ -884,20 +925,8 @@ case $1 in
 
         inspect_install_arguments "$@"
 
-        install_the_given_package ruby
-
-        cat > "$PACKAGE_INSTALL_DIR/toolchain.txt" <<EOF
-     CC='$CC'
-    CXX='$CXX'
-     AS='$AS'
-     LD='$LD'
-     AR='$AR'
- RANLIB='$RANLIB'
-SYSROOT='$SYSROOT'
-PROFILE='$PROFILE'
- CFLAGS='$CFLAGS'
-LDFLAGS='$LDFLAGS'
-EOF
+        (install_the_given_package gsed)
+         install_the_given_package ruby
 
         if [ "$REQUEST_TO_KEEP_SESSION_DIR" != 1 ] ; then
             rm -rf "$SESSION_DIR"
