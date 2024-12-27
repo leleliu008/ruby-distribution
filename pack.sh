@@ -98,6 +98,35 @@ PREFIX="ruby-$1-$2"
 
 run ./build.sh install --prefix="$PREFIX"
 
-run cp build.sh "$PREFIX/"
+run cp build.sh pack.sh "$PREFIX/"
+
+if [ "$TARGET_OS_KIND" = linux ] ; then
+    run mv ruby.c "$PREFIX/bin/"
+
+    run cd "$PREFIX/bin/"
+
+    run install -d ../runtime/
+
+    run mv ruby ruby.exe
+
+    run chmod -x ruby.exe
+
+    DYNAMIC_LOADER_PATH="$(patchelf --print-interpreter ruby.exe)"
+    DYNAMIC_LOADER_NAME="${DYNAMIC_LOADER_PATH##*/}"
+
+    sed -i "s|ld-linux-x86-64.so.2|$DYNAMIC_LOADER_NAME|" ruby.c
+
+    run gcc -static -std=gnu99 -Os -flto -s -o ruby ruby.c
+
+    NEEDEDs="$(patchelf --print-needed ruby.exe)"
+
+    for NEEDED_FILENAME in $NEEDEDs
+    do
+        NEEDED_FILEPATH="$(gcc -print-file-name="$NEEDED_FILENAME")"
+        run cp -L "$NEEDED_FILEPATH" ../runtime/
+    done
+
+    run cd -
+fi
 
 run bsdtar cvaPf "$PREFIX.tar.xz" "$PREFIX"

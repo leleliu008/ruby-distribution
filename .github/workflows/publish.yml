@@ -84,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target-version: ['14.1', '14.0', '13.4', '13.3', '13.2']
+        target-version: ['14.2', '14.1', '14.0', '13.4', '13.3', '13.2']
 
     steps:
       - uses: actions/checkout@v4
@@ -209,100 +209,77 @@ jobs:
           path: ruby-${{ needs.check.outputs.release-version }}-macos-${{ matrix.target-version }}-x86_64.tar.xz
 
 
-  linux-glibc:
+  linux-x86_64:
     needs: check
     if: needs.check.outputs.if-new-release == 'yes'
-
-    strategy:
-      fail-fast: false
-      matrix:
-        target-arch: [x86_64, aarch64, ppc64le, riscv64, s390x]
 
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - run: |
-          cat > run.sh <<EOF
-          ./pack.sh ${{ needs.check.outputs.release-version }} linux-glibc-${{ matrix.target-arch }}
-          EOF
-
-          chmod +x run.sh
-
-      # https://github.com/multiarch/qemu-user-static
-      - if: matrix.target-arch != 'x86_64'
-        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
-      - if: matrix.target-arch == 'x86_64'
-        run: docker run -v $PWD:/root -w /root --name ubuntu         ubuntu:18.04 sh run.sh
-
-      - if: matrix.target-arch == 'aarch64'
-        run: docker run -v $PWD:/root -w /root --name ubuntu arm64v8/ubuntu:18.04 sh run.sh
-
-      - if: matrix.target-arch == 'ppc64le'
-        run: docker run -v $PWD:/root -w /root --name ubuntu ppc64le/ubuntu:18.04 sh run.sh
-
-      - if: matrix.target-arch == 'riscv64'
-        run: docker run -v $PWD:/root -w /root --name ubuntu riscv64/ubuntu:23.04 sh run.sh
-
-      - if: matrix.target-arch == 's390x'
-        run: docker run -v $PWD:/root -w /root --name ubuntu   s390x/ubuntu:18.04 sh run.sh
+      - run: ./pack.sh ${{ needs.check.outputs.release-version }} linux-any-x86_64
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ruby-${{ needs.check.outputs.release-version }}-linux-glibc-${{ matrix.target-arch }}.tar.xz
-          path: ruby-${{ needs.check.outputs.release-version }}-linux-glibc-${{ matrix.target-arch }}.tar.xz
+          name: ruby-${{ needs.check.outputs.release-version }}-linux-any-x86_64.tar.xz
+          path: ruby-${{ needs.check.outputs.release-version }}-linux-any-x86_64.tar.xz
 
 
-  linux-musl:
+  linux-other:
     needs: check
     if: needs.check.outputs.if-new-release == 'yes'
+
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        target-arch: [x86_64, aarch64, ppc64le, riscv64, s390x]
-
-    runs-on: ubuntu-latest
+        target-arch: [aarch64, ppc64le, riscv64, s390x]
 
     steps:
       - uses: actions/checkout@v4
 
       - run: |
-          cat > run.sh <<EOF
-          ./pack.sh ${{ needs.check.outputs.release-version }} linux-musl-${{ matrix.target-arch }}
-          EOF
+          case ${{ matrix.target-arch }} in
+            x86_64)  X=amd64 ;;
+            aarch64) X=arm64 ;;
+            ppc64le) X=ppc64el ;;
+            *)       X=${{ matrix.target-arch }}
+          esac
+          curl -LO https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.1-base-$X.tar.gz
 
-          chmod +x run.sh
+      - run: install -d ubuntu-rootfs
+      - run: tar xf ubuntu-base-24.04.1-base-*.tar.gz -C ubuntu-rootfs
 
-      # https://github.com/multiarch/qemu-user-static
-      - if: matrix.target-arch != 'x86_64'
-        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+      - run: cp -p /etc/resolv.conf ubuntu-rootfs/etc/
+      - run: cp build.sh pack.sh ruby.c ubuntu-rootfs/
 
-      - if: matrix.target-arch == 'x86_64'
-        run: docker run -v $PWD:/root -w /root --name alpine         alpine sh run.sh
+      - run: sudo mount -o bind  /dev ubuntu-rootfs/dev
+      - run: sudo mount -t proc  none ubuntu-rootfs/proc
+      - run: sudo mount -t sysfs none ubuntu-rootfs/sys
+      - run: sudo mount -t tmpfs none ubuntu-rootfs/tmp
 
-      - if: matrix.target-arch == 'aarch64'
-        run: docker run -v $PWD:/root -w /root --name alpine arm64v8/alpine sh run.sh
+      - run: sudo apt-get -y update
+      - run: sudo apt-get -y install qemu-user-static binfmt-support
 
-      - if: matrix.target-arch == 'ppc64le'
-        run: docker run -v $PWD:/root -w /root --name alpine ppc64le/alpine sh run.sh
+      - run: update-binfmts --enable
 
-      - if: matrix.target-arch == 'riscv64'
-        run: docker run -v $PWD:/root -w /root --name alpine riscv64/alpine sh run.sh
+      - run: sudo install -g `id -g` -o `id -u` /usr/bin/qemu-${{ matrix.target-arch }}-static ubuntu-rootfs/
 
-      - if: matrix.target-arch == 's390x'
-        run: docker run -v $PWD:/root -w /root --name alpine   s390x/alpine sh run.sh
+      - run: sudo chroot ubuntu-rootfs /qemu-${{ matrix.target-arch }}-static /bin/sh pack.sh ${{ needs.check.outputs.release-version }} linux-any-${{ matrix.target-arch }}
+
+      - run: mv ubuntu-rootfs/ruby-${{ needs.check.outputs.release-version }}-linux-any-${{ matrix.target-arch }}.tar.xz .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ruby-${{ needs.check.outputs.release-version }}-linux-musl-${{ matrix.target-arch }}.tar.xz
-          path: ruby-${{ needs.check.outputs.release-version }}-linux-musl-${{ matrix.target-arch }}.tar.xz
+          name: ruby-${{ needs.check.outputs.release-version }}-linux-any-${{ matrix.target-arch }}.tar.xz
+          path: ruby-${{ needs.check.outputs.release-version }}-linux-any-${{ matrix.target-arch }}.tar.xz
+
 
 
   publish:
-    needs: [check, dragonflybsd, freebsd, openbsd, netbsd, macos-arm64, macos-x86_64, linux-glibc, linux-musl]
+    needs: [check, dragonflybsd, freebsd, openbsd, netbsd, macos-arm64, macos-x86_64, linux-x86_64, linux-other]
     if: needs.check.outputs.if-new-release == 'yes'
 
     runs-on: ubuntu-latest

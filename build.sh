@@ -772,7 +772,6 @@ package_info_perl() {
 }
 
 package_info_ruby() {
-    PACKAGE_VERSION='3.3.6'
     PACKAGE_SRC_URL='https://cache.ruby-lang.org/pub/ruby/3.3/ruby-3.3.6.tar.gz'
     PACKAGE_SRC_SHA='8dc48fffaf270f86f1019053f28e51e4da4cce32a36760a0603a9aee67d7fd8d'
     PACKAGE_DEP_PKG='libz libyaml libffi libopenssl'
@@ -922,10 +921,14 @@ case $1 in
         help
         ;;
     ruby-version)
-        unset PACKAGE_VERSION
+        unset PACKAGE_SRC_URL
 
         package_info_ruby
-        
+
+        PACKAGE_SRC_FILENAME="${PACKAGE_SRC_URL##*/}"
+        PACKAGE_SRC_FILENAME_PREFIX="${PACKAGE_SRC_FILENAME%.tar.*}"
+        PACKAGE_VERSION="${PACKAGE_SRC_FILENAME_PREFIX##*-}"
+
         printf '%s\n' "$PACKAGE_VERSION"
         ;;
     config)
