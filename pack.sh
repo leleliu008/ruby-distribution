@@ -90,7 +90,9 @@ unset sudo
 
 [ "$(id -u)" -eq 0 ] || sudo=sudo
 
-__setup_${2%%-*}
+TARGET_OS_KIND="${2%%-*}"
+
+__setup_$TARGET_OS_KIND
 
 [ -f cacert.pem ] && run export SSL_CERT_FILE="$PWD/cacert.pem"
 
