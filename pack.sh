@@ -75,7 +75,7 @@ __setup_linux() {
     case $ID in
         ubuntu)
             run $sudo apt-get -y update
-            run $sudo apt-get -y install curl libarchive-tools make g++ linux-headers-generic
+            run $sudo apt-get -y install curl libarchive-tools make g++ linux-headers-generic patchelf
             run $sudo ln -sf /usr/bin/make /usr/bin/gmake
             ;;
         alpine)
