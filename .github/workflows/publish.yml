@@ -226,6 +226,26 @@ jobs:
           path: ruby-${{ needs.check.outputs.release-version }}-linux-any-x86_64.tar.xz
 
 
+  linux-loongarch64:
+    needs: check
+    if: needs.check.outputs.if-new-release == 'yes'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: curl -LO https://raw.githubusercontent.com/alpinelinux/alpine-chroot-install/master/alpine-chroot-install
+      - run: chmod +x alpine-chroot-install
+      - run: sudo ./alpine-chroot-install -d /alpine -a loongarch64
+      - run: /alpine/enter-chroot /bin/sh pack.sh ${{ needs.check.outputs.release-version }} linux-any-loongarch64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruby-${{ needs.check.outputs.release-version }}-linux-any-loongarch64.tar.xz
+          path: ruby-${{ needs.check.outputs.release-version }}-linux-any-loongarch64.tar.xz
+
+
   linux-other:
     needs: check
     if: needs.check.outputs.if-new-release == 'yes'
@@ -279,7 +299,7 @@ jobs:
 
 
   publish:
-    needs: [check, dragonflybsd, freebsd, openbsd, netbsd, macos-arm64, macos-x86_64, linux-x86_64, linux-other]
+    needs: [check, dragonflybsd, freebsd, openbsd, netbsd, macos-arm64, macos-x86_64, linux-loongarch64, linux-x86_64, linux-other]
     if: needs.check.outputs.if-new-release == 'yes'
 
     runs-on: ubuntu-latest
