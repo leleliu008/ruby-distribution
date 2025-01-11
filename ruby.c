@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
     ////////////////////////////////////////////////////
 
     const char * dynamicLoaderName = "ld-linux-x86-64.so.2";
-    const char * libraryPathRelativeToSelfExePath = "/../runtime";
+    const char * libraryPathRelativeToSelfExePath = "/../lib";
 
     ////////////////////////////////////////////////////
 

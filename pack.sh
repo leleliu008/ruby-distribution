@@ -107,7 +107,7 @@ if [ "$TARGET_OS_KIND" = linux ] ; then
 
     run cd "$PREFIX/bin/"
 
-    run install -d ../runtime/
+    run install -d ../lib/
 
     run mv ruby ruby.exe
 
@@ -125,7 +125,7 @@ if [ "$TARGET_OS_KIND" = linux ] ; then
     for NEEDED_FILENAME in $NEEDEDs
     do
         NEEDED_FILEPATH="$(gcc -print-file-name="$NEEDED_FILENAME")"
-        run cp -L "$NEEDED_FILEPATH" ../runtime/
+        run cp -L "$NEEDED_FILEPATH" ../lib/
     done
 
     run cd -
