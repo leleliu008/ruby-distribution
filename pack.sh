@@ -80,7 +80,7 @@ __setup_linux() {
             ;;
         alpine)
             run $sudo apk update
-            run $sudo apk add make g++ linux-headers libarchive-tools
+            run $sudo apk add make g++ linux-headers libarchive-tools patchelf
     esac
 }
 
