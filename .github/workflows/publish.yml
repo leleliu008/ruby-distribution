@@ -138,8 +138,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        #target-version: ['9.4', '9.3', '9.2']
-        target-version: ['10.1', '10.0', '9.4', '9.3', '9.2']
+        target-version: ['9.4', '9.3', '9.2']
+          #target-version: ['10.1', '10.0', '9.4', '9.3', '9.2']
 
     steps:
       - uses: actions/checkout@v4

@@ -795,7 +795,7 @@ cat > cc-wrapper <<EOF
 #!/bin/sh
 
 if [ "\$1" = -dynamic ] && [ "\$2" = -bundle ] ; then
-    exec "$CC" "\$@" "$PACKAGE_WORKING_DIR/src/libruby.3.3-static.a" -framework CoreFoundation
+    exec "$CC" "\$@" "$PACKAGE_WORKING_DIR/src/libruby.3.4-static.a" -framework CoreFoundation
 else
     exec "$CC" "\$@"
 fi
