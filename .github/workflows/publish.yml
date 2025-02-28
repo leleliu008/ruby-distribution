@@ -273,7 +273,7 @@ jobs:
       - run: tar xf ubuntu-base-24.04.2-base-*.tar.gz -C ubuntu-rootfs
 
       - run: cp -p /etc/resolv.conf ubuntu-rootfs/etc/
-      - run: cp build.sh bundle.sh ruby.c ubuntu-rootfs/
+      - run: cp *.sh ubuntu-rootfs/
 
       - run: sudo mount -o bind  /dev ubuntu-rootfs/dev
       - run: sudo mount -t proc  none ubuntu-rootfs/proc
