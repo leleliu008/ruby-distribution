@@ -243,6 +243,8 @@ $FILEPATH"
     esac
 done < fs.txt
 
+rm fs.txt
+
 ##################################################################
 
 [ -n "$NEEDED_SYSTEM_SHARED_LIBS" ] && {
