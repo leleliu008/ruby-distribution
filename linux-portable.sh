@@ -204,8 +204,8 @@ do
             Y="$(head -n 1 "$FILEPATH")"
 
             case "$Y" in
-                */bin/python3*)
-                    gsed -i '1c #!/usr/bin/env python3' "$FILEPATH"
+                */bin/ruby*)
+                    gsed -i '1c #!/usr/bin/env ruby' "$FILEPATH"
             esac
             ;;
         7F454C46)
