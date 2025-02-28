@@ -20,7 +20,7 @@ jobs:
 
           cat > QUERY <<EOF
           {
-            repository(owner: "leleliu008", name: "ruby-distribution") {
+            repository(owner: "${{ github.repository_owner }}", name: "ruby-distribution") {
                 latestRelease {
                   name
                 }
@@ -67,7 +67,7 @@ jobs:
           usesh: true
           sync: rsync
           copyback: true
-          run: ./pack.sh ${{ needs.check.outputs.release-version }} dragonflybsd-${{ matrix.target-version }}-x86_64
+          run: ./bundle.sh ${{ needs.check.outputs.release-version }} dragonflybsd-${{ matrix.target-version }}-x86_64
 
       - uses: actions/upload-artifact@v4
         with:
@@ -94,7 +94,7 @@ jobs:
           operating_system: freebsd
           version: ${{ matrix.target-version }}
           shell: bash
-          run: ./pack.sh ${{ needs.check.outputs.release-version }} freebsd-${{ matrix.target-version }}-amd64
+          run: ./bundle.sh ${{ needs.check.outputs.release-version }} freebsd-${{ matrix.target-version }}-amd64
 
       - uses: actions/upload-artifact@v4
         with:
@@ -121,7 +121,7 @@ jobs:
           operating_system: openbsd
           version: ${{ matrix.target-version }}
           shell: bash
-          run: ./pack.sh ${{ needs.check.outputs.release-version }} openbsd-${{ matrix.target-version }}-amd64
+          run: ./bundle.sh ${{ needs.check.outputs.release-version }} openbsd-${{ matrix.target-version }}-amd64
 
       - uses: actions/upload-artifact@v4
         with:
@@ -138,20 +138,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target-version: ['9.4', '9.3', '9.2']
-          #target-version: ['10.0', '9.4', '9.3', '9.2']
+        #target-version: ['9.4', '9.3', '9.2']
+        target-version: ['10.1', '10.0', '9.4', '9.3', '9.2']
 
     steps:
       - uses: actions/checkout@v4
 
       - run: curl -LO https://curl.se/ca/cacert.pem
 
-      - uses: cross-platform-actions/action@v0.25.0
+      - uses: cross-platform-actions/action@v0.27.0
         with:
           operating_system: netbsd
           version: ${{ matrix.target-version }}
           shell: bash
-          run: ./pack.sh ${{ needs.check.outputs.release-version }} netbsd-${{ matrix.target-version }}-amd64
+          run: ./bundle.sh ${{ needs.check.outputs.release-version }} netbsd-${{ matrix.target-version }}-amd64
 
       - uses: actions/upload-artifact@v4
         with:
@@ -176,7 +176,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: ./pack.sh ${{ needs.check.outputs.release-version }} macos-${{ matrix.target-version }}-arm64
+      - run: ./bundle.sh ${{ needs.check.outputs.release-version }} macos-${{ matrix.target-version }}-arm64
 
       - uses: actions/upload-artifact@v4
         with:
@@ -201,7 +201,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: ./pack.sh ${{ needs.check.outputs.release-version }} macos-${{ matrix.target-version }}-x86_64
+      - run: ./bundle.sh ${{ needs.check.outputs.release-version }} macos-${{ matrix.target-version }}-x86_64
 
       - uses: actions/upload-artifact@v4
         with:
@@ -218,7 +218,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: ./pack.sh ${{ needs.check.outputs.release-version }} linux-any-x86_64
+      - run: ./bundle.sh ${{ needs.check.outputs.release-version }} linux-any-x86_64
 
       - uses: actions/upload-artifact@v4
         with:
@@ -238,7 +238,7 @@ jobs:
       - run: curl -LO https://raw.githubusercontent.com/alpinelinux/alpine-chroot-install/master/alpine-chroot-install
       - run: chmod +x alpine-chroot-install
       - run: sudo ./alpine-chroot-install -d /alpine -a loongarch64
-      - run: /alpine/enter-chroot /bin/sh pack.sh ${{ needs.check.outputs.release-version }} linux-any-loongarch64
+      - run: /alpine/enter-chroot /bin/sh bundle.sh ${{ needs.check.outputs.release-version }} linux-any-loongarch64
 
       - uses: actions/upload-artifact@v4
         with:
@@ -255,7 +255,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target-arch: [aarch64, ppc64le, riscv64, s390x]
+        target-arch: [aarch64, ppc64le, riscv64, s390x, armhf]
 
     steps:
       - uses: actions/checkout@v4
@@ -267,13 +267,13 @@ jobs:
             ppc64le) X=ppc64el ;;
             *)       X=${{ matrix.target-arch }}
           esac
-          curl -LO https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.1-base-$X.tar.gz
+          curl -LO https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.2-base-$X.tar.gz
 
       - run: install -d ubuntu-rootfs
-      - run: tar xf ubuntu-base-24.04.1-base-*.tar.gz -C ubuntu-rootfs
+      - run: tar xf ubuntu-base-24.04.2-base-*.tar.gz -C ubuntu-rootfs
 
       - run: cp -p /etc/resolv.conf ubuntu-rootfs/etc/
-      - run: cp build.sh pack.sh ruby.c ubuntu-rootfs/
+      - run: cp build.sh bundle.sh ruby.c ubuntu-rootfs/
 
       - run: sudo mount -o bind  /dev ubuntu-rootfs/dev
       - run: sudo mount -t proc  none ubuntu-rootfs/proc
@@ -287,14 +287,14 @@ jobs:
 
       - run: sudo install -g `id -g` -o `id -u` /usr/bin/qemu-${{ matrix.target-arch }}-static ubuntu-rootfs/
 
-      - run: sudo chroot ubuntu-rootfs /qemu-${{ matrix.target-arch }}-static /bin/sh pack.sh ${{ needs.check.outputs.release-version }} linux-any-${{ matrix.target-arch }}
+      - run: sudo chroot ubuntu-rootfs /qemu-${{ matrix.target-arch }}-static /bin/sh bundle.sh ${{ needs.check.outputs.release-version }} linux-any-${{ matrix.target-arch }}
 
       - run: mv ubuntu-rootfs/ruby-${{ needs.check.outputs.release-version }}-linux-any-${{ matrix.target-arch }}.tar.xz .
 
       - uses: actions/upload-artifact@v4
         with:
           name: ruby-${{ needs.check.outputs.release-version }}-linux-any-${{ matrix.target-arch }}.tar.xz
-          path: ruby-${{ needs.check.outputs.release-version }}-linux-any-${{ matrix.target-arch }}.tar.xz
+          path: ruby-${{ needs.check.outputs.release-version }}-linux-any-*.tar.xz
 
 
 

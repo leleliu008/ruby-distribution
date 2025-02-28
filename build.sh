@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (c) 2024-2024 刘富频
+# Copyright (c) 2024-2025 刘富频
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -611,7 +611,10 @@ install_the_given_package() {
     unset PACKAGE_SRC_URL
     unset PACKAGE_SRC_URI
     unset PACKAGE_SRC_SHA
-    unset PACKAGE_DEP_PKG
+
+    unset PACKAGE_DEP_LIB
+    unset PACKAGE_DEP_AUX
+
     unset PACKAGE_DOPATCH
     unset PACKAGE_INSTALL
     unset PACKAGE_DOTWEAK
@@ -620,7 +623,7 @@ install_the_given_package() {
 
     #########################################################################################
 
-    for PACKAGE_DEPENDENCY in $PACKAGE_DEP_PKG
+    for PACKAGE_DEPENDENCY in $PACKAGE_DEP_AUX $PACKAGE_DEP_LIB
     do
         (install_the_given_package "$PACKAGE_DEPENDENCY")
     done
@@ -711,7 +714,8 @@ install_the_given_package() {
 src-url: $PACKAGE_SRC_URL
 src-uri: $PACKAGE_SRC_URI
 src-sha: $PACKAGE_SRC_SHA
-dep-pkg: $PACKAGE_DEP_PKG
+dep-lib: $PACKAGE_DEP_LIB
+dep-aux: $PACKAGE_DEP_AUX
 install: $PACKAGE_INSTALL
 builtat: $PACKAGE_INSTALL_UTS
 EOF
@@ -749,9 +753,14 @@ package_info_libyaml() {
 }
 
 package_info_libopenssl() {
-    PACKAGE_SRC_URL='https://www.openssl.org/source/openssl-3.3.1.tar.gz'
-    PACKAGE_SRC_SHA='777cd596284c883375a2a7a11bf5d2786fc5413255efab20c50d6ffe6d020b7e'
-    PACKAGE_DEP_PKG='perl'
+    PACKAGE_SRC_URL='https://www.openssl.org/source/openssl-3.4.1.tar.gz'
+    PACKAGE_SRC_URI='https://github.com/openssl/openssl/releases/download/openssl-3.4.1/openssl-3.4.1.tar.gz'
+    PACKAGE_SRC_SHA='002a2d6b30b58bf4bea46c43bdd96365aaf8daa6c428782aa4feee06da197df3'
+    PACKAGE_DEP_AUX='perl'
+    PACKAGE_DOPATCH='
+    case $NATIVE_PLATFORM_ARCH in
+        armv7l) gsed -i "s|armv7-a|armv7-a+fp|g" util/perl/OpenSSL/config.pm
+    esac'
     PACKAGE_INSTALL='run ./config "--prefix=$PACKAGE_INSTALL_DIR" no-shared no-tests no-ssl3 no-ssl3-method no-zlib --libdir=lib --openssldir=etc/ssl && run "$GMAKE" build_libs "--jobs=$BUILD_NJOBS" && run "$GMAKE" install_dev'
     # https://github.com/openssl/openssl/blob/master/INSTALL.md
 }
@@ -759,26 +768,25 @@ package_info_libopenssl() {
 package_info_libxcrypt() {
     PACKAGE_SRC_URL='https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz'
     PACKAGE_SRC_SHA='e5e1f4caee0a01de2aee26e3138807d6d3ca2b8e67287966d1fefd65e1fd8943'
-    PACKAGE_DEP_PKG='perl'
+    PACKAGE_DEP_AUX='perl'
     PACKAGE_DOPATCH='export LDFLAGS="-static $LDFLAGS"'
     PACKAGE_INSTALL='configure --disable-dependency-tracking --enable-obsolete-api=glibc --disable-xcrypt-compat-files --disable-failure-tokens --disable-valgrind'
 }
 
 package_info_perl() {
-    PACKAGE_SRC_URL='https://cpan.metacpan.org/authors/id/P/PE/PEVANS/perl-5.38.2.tar.xz'
-    PACKAGE_SRC_URI='https://distfiles.macports.org/perl5.38/perl-5.38.2.tar.xz'
-    PACKAGE_SRC_SHA='d91115e90b896520e83d4de6b52f8254ef2b70a8d545ffab33200ea9f1cf29e8'
+    PACKAGE_SRC_URL='https://www.cpan.org/src/5.0/perl-5.40.1.tar.xz'
+    PACKAGE_SRC_SHA='dfa20c2eef2b4af133525610bbb65dd13777ecf998c9c5b1ccf0d308e732ee3f'
     PACKAGE_INSTALL='run ./Configure "-Dprefix=$PACKAGE_INSTALL_DIR" -Dman1dir=none -Dman3dir=none -des -Dmake=gmake -Duselargefiles -Duseshrplib -Dusethreads -Dusenm=false -Dusedl=true && run "$GMAKE" "--jobs=$BUILD_NJOBS" && run "$GMAKE" install'
 }
 
 package_info_ruby() {
-    PACKAGE_SRC_URL='https://cache.ruby-lang.org/pub/ruby/3.3/ruby-3.3.6.tar.gz'
-    PACKAGE_SRC_SHA='8dc48fffaf270f86f1019053f28e51e4da4cce32a36760a0603a9aee67d7fd8d'
-    PACKAGE_DEP_PKG='libz libyaml libffi libopenssl'
+    PACKAGE_SRC_URL='https://cache.ruby-lang.org/pub/ruby/3.4/ruby-3.4.2.tar.gz'
+    PACKAGE_SRC_SHA='41328ac21f2bfdd7de6b3565ef4f0dd7543354d37e96f157a1552a6bd0eb364b'
+    PACKAGE_DEP_LIB='libz libffi libyaml libopenssl'
     PACKAGE_INSTALL='configure --disable-dependency-tracking --disable-install-doc --disable-install-rdoc --disable-rpath --enable-load-relative --with-static-linked-ext --without-gmp --with-opt-dir="$AUX_INSTALL_DIR"'
 
     if [ "$NATIVE_PLATFORM_KIND" = linux ] ; then
-        PACKAGE_DEP_PKG="$PACKAGE_DEP_PKG libxcrypt"
+        PACKAGE_DEP_LIB="$PACKAGE_DEP_LIB libxcrypt"
     fi
 
     PACKAGE_DOPATCH='
@@ -894,7 +902,10 @@ show_config() {
     unset PACKAGE_SRC_URL
     unset PACKAGE_SRC_URI
     unset PACKAGE_SRC_SHA
-    unset PACKAGE_DEP_PKG
+
+    unset PACKAGE_DEP_LIB
+    unset PACKAGE_DEP_AUX
+
     unset PACKAGE_DOPATCH
     unset PACKAGE_INSTALL
     unset PACKAGE_DOTWEAK
@@ -908,7 +919,7 @@ $1:
 
 EOF
 
-    for DEP_PKG_NAME in $PACKAGE_DEP_PKG
+    for DEP_PKG_NAME in $PACKAGE_DEP_LIB
     do
         (show_config "$DEP_PKG_NAME")
     done
