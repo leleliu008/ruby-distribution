@@ -279,6 +279,8 @@ do
     K="${KV%|*}"
     V="${KV#*|}"
 
+    patchelf --print-needed "$K" > /dev/null || continue
+
     RELATIVE_PATH="$(realpath -m --relative-to="${K%/*}" "$V")"
 
     run patchelf --add-rpath "'\$ORIGIN/$RELATIVE_PATH'" "$K"
@@ -287,6 +289,8 @@ done
 ##################################################################
 
 [ -n "$NEEDED_SYSTEM_SHARED_LIBS" ] && {
+    run install -d lib/
+
     for f in $NEEDED_SYSTEM_SHARED_LIBS
     do
         run cp -L "'$f'" lib/
